@@ -1,7 +1,7 @@
 # 💬 OmniChat – Firebase Real-Time Support Chat
 
 > 🚀 A lightweight real-time chat system built with **React (Vite)** and **Firebase Firestore**.  
-> 👨‍💻 Developed by **Murugan Sriman** as part of internship preparation and production-ready project practice.
+> 👨‍💻 Developed by ** Sriman** as part of a production-ready project practice.
 
 ---
 
