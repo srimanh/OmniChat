@@ -9,6 +9,16 @@ function App() {
   const chatId = "room1";
   const messagesEndRef = useRef(null);
 
+  // Smart reply logic as a helper function
+  const triggerSmartReply = (msg) => {
+    const txt = msg.toLowerCase();
+    if (txt.includes("where") || txt.includes("status")) {
+      return "📦 Your order is currently being processed and will be shipped soon!";
+    }
+    // Don't return escalation here, handle below for 2-step agent flow
+    return null;
+  };
+
   useEffect(() => {
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -22,60 +32,48 @@ function App() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (message.trim() === '') return;
+    const trimmed = message.trim();
+    if (!trimmed) return;
 
-    const userMessage = {
-      text: message,
+    // 1. Add user message
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      text: trimmed,
       sender: "User",
-      timestamp: serverTimestamp()
-    };
+      timestamp: serverTimestamp(),
+    });
 
-    await addDoc(collection(db, "chats", chatId, "messages"), userMessage);
-    setMessage('');
+    setMessage(""); // Clear input
 
-    // Smart Reply Logic
-    const lower = message.toLowerCase();
-    let botReply = "";
-
-    if (lower.includes("where") || lower.includes("status")) {
-      botReply = "📦 Your order is on the way and will arrive soon!";
-    } else if (lower.includes("hello") || lower.includes("hi")) {
-      botReply = "👋 Hello! How can I help you today?";
-    } else if (lower.includes("thanks") || lower.includes("thank you")) {
-      botReply = "😊 You're welcome! Let me know if you need anything else.";
-    }
-
-    // Escalation flow
-    if (lower.includes("agent") || lower.includes("human")) {
+    // 2. Escalation flow for agent/human/help (2-step)
+    const lower = trimmed.toLowerCase();
+    if (lower.includes("agent") || lower.includes("human") || lower.includes("help")) {
       setTimeout(async () => {
-        const botMessage = {
+        await addDoc(collection(db, "chats", chatId, "messages"), {
           text: "👨‍💼 Connecting you to a support agent...",
           sender: "OmniBot 🤖",
-          timestamp: serverTimestamp()
-        };
-        await addDoc(collection(db, "chats", chatId, "messages"), botMessage);
-
+          timestamp: serverTimestamp(),
+        });
         setTimeout(async () => {
-          const joined = {
+          await addDoc(collection(db, "chats", chatId, "messages"), {
             text: "🧑‍💼 Support Agent has joined the conversation.",
             sender: "Support Agent",
-            timestamp: serverTimestamp()
-          };
-          await addDoc(collection(db, "chats", chatId, "messages"), joined);
-        }, 3000);
-      }, 1000);
+            timestamp: serverTimestamp(),
+          });
+        }, 3000); // simulate agent connection
+      }, 800); // initial bot delay
       return;
     }
 
+    // 3. Trigger smart reply if applicable (for "where"/"status")
+    const botReply = triggerSmartReply(trimmed);
     if (botReply) {
       setTimeout(async () => {
-        const botMessage = {
+        await addDoc(collection(db, "chats", chatId, "messages"), {
           text: botReply,
           sender: "OmniBot 🤖",
-          timestamp: serverTimestamp()
-        };
-        await addDoc(collection(db, "chats", chatId, "messages"), botMessage);
-      }, 1000);
+          timestamp: serverTimestamp(),
+        });
+      }, 800); // simulate typing delay
     }
   };
 
