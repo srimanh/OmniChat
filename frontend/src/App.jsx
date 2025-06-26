@@ -39,12 +39,32 @@ function App() {
 
     if (lower.includes("where") || lower.includes("status")) {
       botReply = "📦 Your order is on the way and will arrive soon!";
-    } else if (lower.includes("human") || lower.includes("agent")) {
-      botReply = "👨‍💼 Connecting you to a support agent...";
     } else if (lower.includes("hello") || lower.includes("hi")) {
       botReply = "👋 Hello! How can I help you today?";
     } else if (lower.includes("thanks") || lower.includes("thank you")) {
       botReply = "😊 You're welcome! Let me know if you need anything else.";
+    }
+
+    // Escalation flow
+    if (lower.includes("agent") || lower.includes("human")) {
+      setTimeout(async () => {
+        const botMessage = {
+          text: "👨‍💼 Connecting you to a support agent...",
+          sender: "OmniBot 🤖",
+          timestamp: serverTimestamp()
+        };
+        await addDoc(collection(db, "chats", chatId, "messages"), botMessage);
+
+        setTimeout(async () => {
+          const joined = {
+            text: "🧑‍💼 Support Agent has joined the conversation.",
+            sender: "Support Agent",
+            timestamp: serverTimestamp()
+          };
+          await addDoc(collection(db, "chats", chatId, "messages"), joined);
+        }, 3000);
+      }, 1000);
+      return;
     }
 
     if (botReply) {
@@ -68,15 +88,40 @@ function App() {
       <div className="chat-container">
         <h2 className="chat-title">OmniChat <span role="img" aria-label="chat">💬</span></h2>
         <div className="chat-messages">
-          {messages.map(msg => (
+          {messages.map((msg, idx) => (
             <div
-              key={msg.id}
-              className={`chat-bubble-row ${msg.sender === "User" ? "chat-bubble-row-user" : "chat-bubble-row-bot"}`}
+              key={msg.id || idx}
+              className={`chat-bubble-row ${
+                msg.sender === "User"
+                  ? "chat-bubble-row-user"
+                  : msg.sender === "Support Agent"
+                  ? "chat-bubble-row-agent"
+                  : "chat-bubble-row-bot"
+              }`}
             >
-              <div className={`chat-bubble ${msg.sender === "User" ? "chat-bubble-user" : "chat-bubble-bot"}`}>
-                {msg.text}
+              <div
+                className={`chat-bubble ${
+                  msg.sender === "User"
+                    ? "chat-bubble-user"
+                    : msg.sender === "Support Agent"
+                    ? "chat-bubble-agent"
+                    : "chat-bubble-bot"
+                }`}
+              >
+                <div className="chat-meta">
+                  <span className="chat-meta-sender">
+                    {msg.sender === "User"
+                      ? "You"
+                      : msg.sender}
+                  </span>
+                  <span className="chat-meta-time">
+                    {msg.timestamp?.toDate
+                      ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : ""}
+                  </span>
+                </div>
+                <div>{msg.text}</div>
               </div>
-              <span className="chat-sender">{msg.sender}</span>
             </div>
           ))}
           <div ref={messagesEndRef} />
