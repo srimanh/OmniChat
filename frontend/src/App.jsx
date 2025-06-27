@@ -104,17 +104,15 @@ function App() {
                     : msg.sender === "Support Agent"
                     ? "chat-bubble-agent"
                     : "chat-bubble-bot"
-                }`}
+                } message ${msg.sender === "OmniBot 🤖" ? "bot" : ""}`}
               >
                 <div className="chat-meta">
                   <span className="chat-meta-sender">
-                    {msg.sender === "User"
-                      ? "You"
-                      : msg.sender}
+                    {msg.sender === "User" ? "You" : msg.sender}
                   </span>
                   <span className="chat-meta-time">
                     {msg.timestamp?.toDate
-                      ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
                       : ""}
                   </span>
                 </div>
