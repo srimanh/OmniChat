@@ -165,3 +165,21 @@ body {
 .chat-send-btn:hover {
   background: linear-gradient(90deg, #818cf8 60%, #6366f1 100%);
 }
+
+.bot-msg {
+  background-color: #f0f0f0 !important;
+  color: #000 !important;
+  font-style: italic;
+}
+.user-msg {
+  background-color: #6366f1 !important;
+  color: #fff !important;
+}
+
+@media (max-width: 700px) {
+  .chat-container {
+    max-width: 98vw;
+    padding: 8px;
+    height: 95vh;
+  }
+}

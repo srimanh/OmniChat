@@ -28,8 +28,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const chatEnd = document.getElementById("chat-end");
+  chatEnd?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
 
   const sendMessage = async () => {
     const trimmed = message.trim();
@@ -117,6 +118,14 @@ function App() {
                   </span>
                 </div>
                 <div>{msg.text}</div>
+                <p className="timestamp">
+                  {msg.timestamp?.toDate
+                    ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : ""}
+                </p>
               </div>
             </div>
           ))}
