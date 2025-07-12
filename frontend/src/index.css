@@ -183,3 +183,7 @@ body {
     height: 95vh;
   }
 }
+.bot-bubble {
+  background-color: #e1f5fe;
+  color: #0d47a1;
+}
