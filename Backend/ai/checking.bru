@@ -1,0 +1,15 @@
+meta {
+  name: checking
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:5050/chatbot/reply
+  body: json
+  auth: inherit
+}
+
+body:json {
+  { "message": "Where is my order?" }
+}

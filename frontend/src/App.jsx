@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { db } from './firebaseConfig';
 import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import './index.css';
+import ReactMarkdown from 'react-markdown';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -32,51 +33,50 @@ function App() {
   chatEnd?.scrollIntoView({ behavior: "smooth" });
 }, [messages]);
 
-  const sendMessage = async () => {
-    const trimmed = message.trim();
-    if (!trimmed) return;
+const sendMessage = async () => {
+  const trimmed = message.trim();
+  if (!trimmed) return;
 
-    // 1. Add user message
+  // 1. Add user message
+  await addDoc(collection(db, "chats", chatId, "messages"), {
+    text: trimmed,
+    sender: "User",
+    timestamp: serverTimestamp(),
+  });
+
+  setMessage(""); // Clear input
+
+  // 2. Show "Typing..." loader
+  setMessages((prev) => [
+    ...prev,
+    { id: "typing", text: "Typing...", sender: "bot", temp: true }
+  ]);
+
+  // 3. Call backend for bot reply
+  try {
+    const res = await fetch("http://localhost:5050/chatbot/reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: trimmed }),
+    });
+    const data = await res.json();
+
+    // 4. Remove "Typing..." and add real bot reply
+    setMessages((prev) => prev.filter((msg) => !msg.temp));
     await addDoc(collection(db, "chats", chatId, "messages"), {
-      text: trimmed,
-      sender: "User",
+      text: data.reply,
+      sender: "bot",
       timestamp: serverTimestamp(),
     });
-
-    setMessage(""); // Clear input
-
-    // 2. Escalation flow for agent/human/help (2-step)
-    const lower = trimmed.toLowerCase();
-    if (lower.includes("agent") || lower.includes("human") || lower.includes("help")) {
-      setTimeout(async () => {
-        await addDoc(collection(db, "chats", chatId, "messages"), {
-          text: "👨‍💼 Connecting you to a support agent...",
-          sender: "OmniBot 🤖",
-          timestamp: serverTimestamp(),
-        });
-        setTimeout(async () => {
-          await addDoc(collection(db, "chats", chatId, "messages"), {
-            text: "🧑‍💼 Support Agent has joined the conversation.",
-            sender: "Support Agent",
-            timestamp: serverTimestamp(),
-          });
-        }, 3000); // simulate agent connection
-      }, 800); // initial bot delay
-      return;
-    }
-
-    // 3. Trigger smart reply if applicable (for "where"/"status")
-    const botReply = triggerSmartReply(trimmed);
-    if (botReply) {
-      setTimeout(async () => {
-        await addDoc(collection(db, "chats", chatId, "messages"), {
-          text: botReply,
-          sender: "OmniBot 🤖",
-          timestamp: serverTimestamp(),
-        });
-      }, 800); // simulate typing delay
-    }
-  };
+  } catch (err) {
+    setMessages((prev) => prev.filter((msg) => !msg.temp));
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      text: "Sorry, I couldn't get a reply from the AI.",
+      sender: "bot",
+      timestamp: serverTimestamp(),
+    });
+  }
+};
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') sendMessage();
@@ -117,7 +117,11 @@ function App() {
                       : ""}
                   </span>
                 </div>
-                <div>{msg.text}</div>
+                <div className={`chat-bubble ${msg.sender === "bot" ? "bot-bubble" : ""}`}>
+                  {msg.sender === "bot"
+                    ? <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    : msg.text}
+                </div>
                 <p className="timestamp">
                   {msg.timestamp?.toDate
                     ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {
